@@ -58,7 +58,7 @@ To give OpenGL texture data, we first need to create somewhere to store it on th
     glBindTexture(GL_TEXTURE_2D, glName);
     eglGetError();
 
-We need to specify some filtering options Ð we tell OpenGL that we want biliniar filtering when the texture is sampled, and that we want to clamp the edge values if we try and sample off the edge of the texture:
+We need to specify some filtering options - we tell OpenGL that we want biliniar filtering when the texture is sampled, and that we want to clamp the edge values if we try and sample off the edge of the texture:
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     eglGetError();
