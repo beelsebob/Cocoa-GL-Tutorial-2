@@ -26,6 +26,9 @@ typedef struct
 
 - (void)loadBufferData;
 
+- (void)loadTextureData;
+- (GLuint)loadTextureNamed:(NSString *)name;
+
 - (void)renderForTime:(CVTimeStamp)time;
 
 @end
@@ -74,6 +77,7 @@ CVReturn displayCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *inNow,
     
     [self loadShader];
     [self loadBufferData];
+    [self loadTextureData];
 }
 
 - (void)loadShader
@@ -96,11 +100,15 @@ CVReturn displayCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *inNow,
         
         [self linkProgram:shaderProgram];
         
-        positionUniform   = glGetUniformLocation(shaderProgram, "p"       );
+        positionUniform          = glGetUniformLocation(shaderProgram, "p"         );
         eglGetError();
-        colourAttribute   = glGetAttribLocation (shaderProgram, "colour"  );
+        backgroundTextureUniform = glGetUniformLocation(shaderProgram, "background");
         eglGetError();
-        positionAttribute = glGetAttribLocation (shaderProgram, "position");
+        holeTextureUniform       = glGetUniformLocation(shaderProgram, "hole"      );
+        eglGetError();
+        colourAttribute          = glGetAttribLocation (shaderProgram, "colour"    );
+        eglGetError();
+        positionAttribute        = glGetAttribLocation (shaderProgram, "position"  );
         eglGetError();
         
         glDeleteShader(vertexShader  );
@@ -240,6 +248,71 @@ CVReturn displayCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *inNow,
     eglGetError();
 }
 
+- (void)loadTextureData
+{
+    GLuint backgroundTexture = [self loadTextureNamed:@"background"];
+    GLuint holeTexture       = [self loadTextureNamed:@"hole"      ];
+    
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, backgroundTexture);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, holeTexture      );
+}
+
+- (GLuint)loadTextureNamed:(NSString *)name
+{
+    NSImage *image = [NSImage imageNamed:name];
+    NSBitmapImageRep *bitmap = [[[NSBitmapImageRep alloc] initWithData:[image TIFFRepresentation]] autorelease];
+    NSImage *premultiplied = [[[NSImage alloc] initWithSize:[image size]] autorelease];
+    if (NSAlphaNonpremultipliedBitmapFormat & [bitmap bitmapFormat])
+    {
+        [premultiplied lockFocus];
+        [bitmap drawAtPoint:NSMakePoint(0.0, 0.0)];
+        [premultiplied unlockFocus];
+    }
+    else
+    {
+        [premultiplied addRepresentation:bitmap];
+    }
+    
+    CGImageRef cgTex = [premultiplied CGImageForProposedRect:NULL context:NULL hints:nil];
+    unsigned long width  = CGImageGetWidth (cgTex);
+    unsigned long height = CGImageGetHeight(cgTex);
+    unsigned long numPixels = width * height;
+    unsigned char *imgData = malloc(numPixels * 4);
+    
+    CGColorSpaceRef colourSpace = CGColorSpaceCreateDeviceRGB();
+    CGContextRef ctx = CGBitmapContextCreate(imgData, width, height, 8, width * 4, colourSpace, kCGImageAlphaPremultipliedLast);
+    CGContextTranslateCTM(ctx, 0, height);
+    CGContextScaleCTM(ctx, 1.0f, -1.0f);
+    CGContextClearRect(ctx, CGRectMake(0, 0, width, height));
+    CGContextDrawImage(ctx, CGRectMake(0, 0, width, height), cgTex);
+    CGContextRelease(ctx);
+    CGColorSpaceRelease(colourSpace);
+    
+    GLuint glName;
+    glGenTextures(1, &glName);
+    eglGetError();
+    glBindTexture(GL_TEXTURE_2D, glName);
+    eglGetError();
+    
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    eglGetError();
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    eglGetError();
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    eglGetError();
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    eglGetError();
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+    eglGetError();
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (int)width, (int)height, 0, GL_RGBA , GL_UNSIGNED_BYTE, imgData);
+    eglGetError();
+    
+    return glName;
+}
+
 - (void)renderForTime:(CVTimeStamp)time
 {
     if (!isFirstRender)
@@ -264,6 +337,10 @@ CVReturn displayCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *inNow,
     GLfloat timeValue = (GLfloat)(time.videoTime) / (GLfloat)(time.videoTimeScale);
     Vector2 p = { .x = 0.5f * sinf(timeValue), .y = 0.5f * cosf(timeValue) };
     glUniform2fv(positionUniform, 1, (const GLfloat *)&p);
+    eglGetError();
+    glUniform1i(backgroundTextureUniform, 0);
+    eglGetError();
+    glUniform1i(holeTextureUniform      , 1);
     eglGetError();
     
     glDrawArrays(GL_TRIANGLE_FAN, 0, 4);

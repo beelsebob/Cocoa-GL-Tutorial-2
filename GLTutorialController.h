@@ -70,6 +70,9 @@ typedef struct
     GLuint vertexBuffer;
     
     GLint positionUniform;
+    GLint backgroundTextureUniform;
+    GLint holeTextureUniform;
+    
     GLint colourAttribute;
     GLint positionAttribute;
 }
