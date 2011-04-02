@@ -42,6 +42,14 @@ default:                                                        break;\
 #define eglGetError()
 #endif
 
+enum Uniforms
+{
+    kPositionUniform = 0,
+    kBackgroundUniform  ,
+    kHoleUniform        ,
+    kNumUniforms
+};
+
 typedef struct
 {
     GLfloat x,y;
@@ -69,9 +77,7 @@ typedef struct
     GLuint shaderProgram;
     GLuint vertexBuffer;
     
-    GLint positionUniform;
-    GLint backgroundTextureUniform;
-    GLint holeTextureUniform;
+    GLint uniforms[kNumUniforms];
     
     GLint colourAttribute;
     GLint positionAttribute;

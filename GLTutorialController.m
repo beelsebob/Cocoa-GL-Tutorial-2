@@ -100,16 +100,31 @@ CVReturn displayCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *inNow,
         
         [self linkProgram:shaderProgram];
         
-        positionUniform          = glGetUniformLocation(shaderProgram, "p"         );
+        uniforms[kPositionUniform]   = glGetUniformLocation(shaderProgram, "p"         );
         eglGetError();
-        backgroundTextureUniform = glGetUniformLocation(shaderProgram, "background");
+        uniforms[kBackgroundUniform] = glGetUniformLocation(shaderProgram, "background");
         eglGetError();
-        holeTextureUniform       = glGetUniformLocation(shaderProgram, "hole"      );
+        uniforms[kHoleUniform]       = glGetUniformLocation(shaderProgram, "hole"      );
         eglGetError();
-        colourAttribute          = glGetAttribLocation (shaderProgram, "colour"    );
+        for (int uniformNumber = 0; uniformNumber < kNumUniforms; uniformNumber++)
+        {
+            if (uniforms[uniformNumber] < 0)
+            {
+                [NSException raise:kFailedToInitialiseGLException format:@"Shader is missing a uniform."];
+            }
+        }
+        colourAttribute   = glGetAttribLocation(shaderProgram, "colour"  );
         eglGetError();
-        positionAttribute        = glGetAttribLocation (shaderProgram, "position"  );
+        if (colourAttribute < 0)
+        {
+            [NSException raise:kFailedToInitialiseGLException format:@"Shader did not contain the 'colour' attribute."];
+        }
+        positionAttribute = glGetAttribLocation(shaderProgram, "position");
         eglGetError();
+        if (positionAttribute < 0)
+        {
+            [NSException raise:kFailedToInitialiseGLException format:@"Shader did not contain the 'position' attribute."];
+        }
         
         glDeleteShader(vertexShader  );
         eglGetError();
@@ -336,11 +351,11 @@ CVReturn displayCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *inNow,
     
     GLfloat timeValue = (GLfloat)(time.videoTime) / (GLfloat)(time.videoTimeScale);
     Vector2 p = { .x = 0.5f * sinf(timeValue), .y = 0.5f * cosf(timeValue) };
-    glUniform2fv(positionUniform, 1, (const GLfloat *)&p);
+    glUniform2fv(uniforms[kPositionUniform], 1, (const GLfloat *)&p);
     eglGetError();
-    glUniform1i(backgroundTextureUniform, 0);
+    glUniform1i(uniforms[kBackgroundUniform], 0);
     eglGetError();
-    glUniform1i(holeTextureUniform      , 1);
+    glUniform1i(uniforms[kHoleUniform]      , 1);
     eglGetError();
     
     glDrawArrays(GL_TRIANGLE_FAN, 0, 4);

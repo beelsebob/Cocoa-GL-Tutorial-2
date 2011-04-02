@@ -85,9 +85,9 @@ Once our two textures are uploaded to the graphics card, we want to set up textu
 
 And inform our shader of which texture units our two textures are residing in:
 
-    glUniform1i(backgroundTextureUniform, 0);
+    glUniform1i(uniforms[kBackgroundUniform], 0);
     eglGetError();
-    glUniform1i(holeTextureUniform      , 1);
+    glUniform1i(uniforms[kHoleUniform]      , 1);
     eglGetError();
 
 Finally, to see the completed result, our fragment shader is now responsible for sampling the two textures to compute the final colour for the pixel:
