@@ -76,7 +76,7 @@ Finally, we give OpenGL our image data:
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (int)width, (int)height, 0, GL_RGBA , GL_UNSIGNED_BYTE, imgData);
     eglGetError();
 
-Once our two textures are uploaded to the graphics card, we want to set up texture units ready to access the textures:
+Once our two textures are uploaded to the graphics card, we want to set up texture units ready to access the textures.  Note that we do this so that we can access both textures at the same time in our shader.  glActiveTexture tells OpenGL that we want to use a different texture unit, while glBindTexture sets the texture as the current for that unit:
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, backgroundTexture);
