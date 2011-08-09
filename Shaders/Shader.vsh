@@ -1,11 +1,13 @@
+#version 150
+
 uniform vec2 p;
 
-attribute vec4 position;
-attribute vec4 colour;
+in vec4 position;
+in vec4 colour;
 
-varying vec2 texCoordV;
-varying vec2 positionV;
-varying vec4 colourV;
+out vec2 texCoordV;
+out vec2 positionV;
+out vec4 colourV;
 
 void main (void)
 {

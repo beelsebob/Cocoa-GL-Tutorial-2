@@ -18,6 +18,8 @@ typedef struct
 
 @interface GLTutorialController ()
 
+- (void)createOpenGLView;
+
 - (void)createDisplayLink;
 
 - (void)createOpenGLResources;
@@ -45,15 +47,43 @@ CVReturn displayCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *inNow,
 }
 
 @implementation GLTutorialController
+{
+    CVDisplayLinkRef displayLink;
+    
+    GLuint shaderProgram;
+    GLuint vertexArrayObject;
+    GLuint vertexBuffer;
+    
+    GLint uniforms[kNumUniforms];
+    
+    GLint colourAttribute;
+    GLint positionAttribute;
+}
 
 @synthesize view;
+@synthesize window;
 
 - (void)awakeFromNib
 {
-    isFirstRender = YES;
-    
+    [self createOpenGLView];
     [self createOpenGLResources];
     [self createDisplayLink];
+}
+
+- (void)createOpenGLView
+{
+    NSOpenGLPixelFormatAttribute pixelFormatAttributes[] =
+    {
+        NSOpenGLPFAOpenGLProfile, NSOpenGLProfileVersion3_2Core,
+        NSOpenGLPFAColorSize    , 24                           ,
+        NSOpenGLPFAAlphaSize    , 8                            ,
+        NSOpenGLPFADoubleBuffer ,
+        NSOpenGLPFAAccelerated  ,
+        0
+    };
+    NSOpenGLPixelFormat *pixelFormat = [[[NSOpenGLPixelFormat alloc] initWithAttributes:pixelFormatAttributes] autorelease];
+    [self setView:[[[NSOpenGLView alloc] initWithFrame:[[[self window] contentView] bounds] pixelFormat:pixelFormat] autorelease]];
+    [[[self window] contentView] addSubview:[self view]];
 }
 
 - (void)createDisplayLink
@@ -99,6 +129,8 @@ CVReturn displayCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *inNow,
         GetError();
         glAttachShader(shaderProgram, fragmentShader);
         GetError();
+        
+        glBindFragDataLocation(shaderProgram, 0, "fragColour");
         
         [self linkProgram:shaderProgram];
         
@@ -248,6 +280,11 @@ CVReturn displayCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *inNow,
         { .position = { .x= 0.5, .y=-0.5, .z=0.0, .w=1.0 }, .colour = { .r=1.0, .g=1.0, .b=1.0, .a=1.0 } }
     };
     
+    glGenVertexArrays(1, &vertexArrayObject);
+    GetError();
+    glBindVertexArray(vertexArrayObject);
+    GetError();
+    
     glGenBuffers(1, &vertexBuffer);
     GetError();
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
@@ -332,15 +369,6 @@ CVReturn displayCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *inNow,
 
 - (void)renderForTime:(CVTimeStamp)time
 {
-    if (!isFirstRender)
-    {
-        [[[self view] openGLContext] flushBuffer];
-    }
-    else
-    {
-        isFirstRender = NO;
-    }
-    
     [[[self view] openGLContext] makeCurrentContext];
     
     glClearColor(0.0, 0.0, 0.0, 1.0);
@@ -362,6 +390,8 @@ CVReturn displayCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *inNow,
     
     glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
     GetError();
+    
+    [[[self view] openGLContext] flushBuffer];
 }
 
 - (void)dealloc

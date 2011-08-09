@@ -7,8 +7,8 @@
 //
 
 #import <Cocoa/Cocoa.h>
-#import <CoreVideo/CoreVideo.h>
-#import <OpenGL/OpenGL.h>
+#import <CoreVideo/CVDisplayLink.h>
+#import <OpenGL/gl3.h>
 
 #define kFailedToInitialiseGLException @"Failed to initialise OpenGL"
 
@@ -36,23 +36,8 @@ typedef struct
 } Colour;
 
 @interface GLTutorialController : NSObject
-{
-@private
-    CVDisplayLinkRef displayLink;
-    
-    NSOpenGLView *view;
-    
-    BOOL isFirstRender;
-    
-    GLuint shaderProgram;
-    GLuint vertexBuffer;
-    
-    GLint uniforms[kNumUniforms];
-    
-    GLint colourAttribute;
-    GLint positionAttribute;
-}
 
 @property (nonatomic, readwrite, retain) IBOutlet NSOpenGLView *view;
+@property (nonatomic, readwrite, retain) IBOutlet NSWindow *window;
 
 @end
