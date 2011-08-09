@@ -92,5 +92,5 @@ And inform our shader of which texture units our two textures are residing in:
 
 Finally, to see the completed result, our fragment shader is now responsible for sampling the two textures to compute the final colour for the pixel:
 
-    vec4 holeColour = texture2D(hole, texCoordV);
-    gl_FragColor = colourV + (1.0 - holeColour.a) * texture2D(background, positionV);
+    vec4 holeColour = texture(hole, texCoordV);
+    gl_FragColor = colourV + (1.0 - holeColour.a) * texture(background, positionV);
