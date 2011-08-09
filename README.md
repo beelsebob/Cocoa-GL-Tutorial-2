@@ -54,27 +54,27 @@ To give OpenGL texture data, we first need to create somewhere to store it on th
 
     GLuint glName;
     glGenTextures(1, &glName);
-    eglGetError();
+    GetError();
     glBindTexture(GL_TEXTURE_2D, glName);
-    eglGetError();
+    GetError();
 
 We need to specify some filtering options - we tell OpenGL that we want biliniar filtering when the texture is sampled, and that we want to clamp the edge values if we try and sample off the edge of the texture:
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    eglGetError();
+    GetError();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    eglGetError();
+    GetError();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    eglGetError();
+    GetError();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    eglGetError();
+    GetError();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    eglGetError();
+    GetError();
 
 Finally, we give OpenGL our image data:
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (int)width, (int)height, 0, GL_RGBA , GL_UNSIGNED_BYTE, imgData);
-    eglGetError();
+    GetError();
 
 Once our two textures are uploaded to the graphics card, we want to set up texture units ready to access the textures.  Note that we do this so that we can access both textures at the same time in our shader.  glActiveTexture tells OpenGL that we want to use a different texture unit, while glBindTexture sets the texture as the current for that unit:
 
@@ -86,9 +86,9 @@ Once our two textures are uploaded to the graphics card, we want to set up textu
 And inform our shader of which texture units our two textures are residing in:
 
     glUniform1i(uniforms[kBackgroundUniform], 0);
-    eglGetError();
+    GetError();
     glUniform1i(uniforms[kHoleUniform]      , 1);
-    eglGetError();
+    GetError();
 
 Finally, to see the completed result, our fragment shader is now responsible for sampling the two textures to compute the final colour for the pixel:
 
