@@ -94,3 +94,5 @@ Finally, to see the completed result, our fragment shader is now responsible for
 
     vec4 holeColour = texture(hole, texCoordV);
     fragColour = colourV + (1.0 - holeColour.a) * texture(background, positionV);
+
+Don't forget to look at my [third tutorial](http://www.github.org/beelsebob/Cocoa-GL-Tutorial-3), which covers 3D projection.
