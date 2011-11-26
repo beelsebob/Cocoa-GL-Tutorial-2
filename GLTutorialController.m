@@ -315,34 +315,24 @@ CVReturn displayCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *inNow,
 
 - (GLuint)loadTextureNamed:(NSString *)name
 {
-    NSImage *image = [NSImage imageNamed:name];
-    NSBitmapImageRep *bitmap = [[[NSBitmapImageRep alloc] initWithData:[image TIFFRepresentation]] autorelease];
-    NSImage *premultiplied = [[[NSImage alloc] initWithSize:[image size]] autorelease];
-    if (NSAlphaNonpremultipliedBitmapFormat & [bitmap bitmapFormat])
-    {
-        [premultiplied lockFocus];
-        [bitmap drawAtPoint:NSMakePoint(0.0, 0.0)];
-        [premultiplied unlockFocus];
-    }
-    else
-    {
-        [premultiplied addRepresentation:bitmap];
-    }
+    CGImageSourceRef imageSource = CGImageSourceCreateWithURL((CFURLRef)[[NSBundle mainBundle] URLForImageResource:name], NULL);
+    CGImageRef image = CGImageSourceCreateImageAtIndex(imageSource, 0, NULL);
+    CFRelease(imageSource);
+    size_t width  = CGImageGetWidth (image);
+    size_t height = CGImageGetHeight(image);
+    CGRect rect = CGRectMake(0.0f, 0.0f, width, height);
     
-    CGImageRef cgTex = [premultiplied CGImageForProposedRect:NULL context:NULL hints:nil];
-    unsigned long width  = CGImageGetWidth (cgTex);
-    unsigned long height = CGImageGetHeight(cgTex);
-    unsigned long numPixels = width * height;
-    unsigned char *imgData = malloc(numPixels * 4);
-    
+    void *imageData = malloc(width * height * 4);
     CGColorSpaceRef colourSpace = CGColorSpaceCreateDeviceRGB();
-    CGContextRef ctx = CGBitmapContextCreate(imgData, width, height, 8, width * 4, colourSpace, kCGImageAlphaPremultipliedLast);
+    CGContextRef ctx = CGBitmapContextCreate(imageData, width, height, 8, width * 4, colourSpace, kCGBitmapByteOrder32Host | kCGImageAlphaPremultipliedFirst);
+    CFRelease(colourSpace);
     CGContextTranslateCTM(ctx, 0, height);
     CGContextScaleCTM(ctx, 1.0f, -1.0f);
-    CGContextClearRect(ctx, CGRectMake(0, 0, width, height));
-    CGContextDrawImage(ctx, CGRectMake(0, 0, width, height), cgTex);
+    CGContextSetBlendMode(ctx, kCGBlendModeCopy);
+    CGContextDrawImage(ctx, rect, image);
     CGContextRelease(ctx);
-    CGColorSpaceRelease(colourSpace);
+    CFRelease(image);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     
     GLuint glName;
     glGenTextures(1, &glName);
@@ -350,6 +340,8 @@ CVReturn displayCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *inNow,
     glBindTexture(GL_TEXTURE_2D, glName);
     GetError();
     
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, (GLint)width);
+    GetError();
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     GetError();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -361,7 +353,7 @@ CVReturn displayCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *inNow,
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     GetError();
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (int)width, (int)height, 0, GL_RGBA , GL_UNSIGNED_BYTE, imgData);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, (int)width, (int)height, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, imageData);
     GetError();
     
     return glName;
