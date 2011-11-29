@@ -289,6 +289,7 @@
 				);
 				PRODUCT_NAME = GLTutorial;
 				RUN_CLANG_STATIC_ANALYZER = YES;
+				VALID_ARCHS = x86_64;
 			};
 			name = Debug;
 		};
@@ -326,6 +327,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				PRODUCT_NAME = GLTutorial;
 				RUN_CLANG_STATIC_ANALYZER = YES;
+				VALID_ARCHS = x86_64;
 			};
 			name = Release;
 		};
