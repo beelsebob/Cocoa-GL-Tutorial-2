@@ -4,47 +4,33 @@ This tutorial builds on my first OpenGL tutorial and explains how to get started
 
 ## Texture Loading In Cocoa
 
-To give OpenGL texture data we must get ourselves the bitmap data in a format that OpenGL is ready to understand.  In this case we're going to use 8 bit per channel, premultiplied, RGBA data.  To get that out of a png file we use NSImage to load the texture:
+To give OpenGL texture data we must get ourselves the bitmap data in a format that OpenGL is ready to understand.  In this case we're going to use 8 bit per channel, premultiplied, RGBA data.  To get that out of a png file we use CGImageSource to load the texture.  We allocate some memory for a graphics context to draw into, and then create a graphics context with a known component ordering, and with premultiplying set on:
 
-    NSImage *image = [NSImage imageNamed:name];
-
-The first thing we do is make sure that the image has premultiplied alpha by drawing it into a new image:
-
-    NSBitmapImageRep *bitmap = [[[NSBitmapImageRep alloc] initWithData:[image TIFFRepresentation]] autorelease];
-    NSImage *premultiplied = [[[NSImage alloc] initWithSize:[image size]] autorelease];
-    if (NSAlphaNonpremultipliedBitmapFormat & [bitmap bitmapFormat])
-    {
-        [premultiplied lockFocus];
-        [bitmap drawAtPoint:NSMakePoint(0.0, 0.0)];
-        [premultiplied unlockFocus];
-    }
-    else
-    {
-        [premultiplied addRepresentation:bitmap];
-    }
-
-Now that we have our premultiplied image, we want to set about getting the image data out of it.  To do this, we create a Core Graphics context of the relevant size, using a chunk of memory we're going to use to pass the data to OpenGL.
-
-    CGImageRef cgTex = [premultiplied CGImageForProposedRect:NULL context:NULL hints:nil];
-    unsigned long width  = CGImageGetWidth (cgTex);
-    unsigned long height = CGImageGetHeight(cgTex);
-    unsigned long numPixels = width * height;
-    unsigned char *imgData = malloc(numPixels * 4);
+    CGImageSourceRef imageSource = CGImageSourceCreateWithURL((CFURLRef)[[NSBundle mainBundle] URLForImageResource:name], NULL);
+    CGImageRef image = CGImageSourceCreateImageAtIndex(imageSource, 0, NULL);
+    CFRelease(imageSource);
+    size_t width  = CGImageGetWidth (image);
+    size_t height = CGImageGetHeight(image);
+    CGRect rect = CGRectMake(0.0f, 0.0f, width, height);
     
+    void *imageData = malloc(width * height * 4);
     CGColorSpaceRef colourSpace = CGColorSpaceCreateDeviceRGB();
-    CGContextRef ctx = CGBitmapContextCreate(imgData, width, height, 8, width * 4, colourSpace, kCGImageAlphaPremultipliedLast);
+    CGContextRef ctx = CGBitmapContextCreate(imageData, width, height, 8, width * 4, colourSpace, kCGBitmapByteOrder32Host | kCGImageAlphaPremultipliedFirst);
+    CFRelease(colourSpace);
 
-We transform the context so as not to get a flipped image out.
+We transform the context so as not to get flipped data out:
 
     CGContextTranslateCTM(ctx, 0, height);
     CGContextScaleCTM(ctx, 1.0f, -1.0f);
 
-And we draw into the context.
+Finally, we draw into this context to fill our data buffer:
 
-    CGContextClearRect(ctx, CGRectMake(0, 0, width, height));
-    CGContextDrawImage(ctx, CGRectMake(0, 0, width, height), cgTex);
+    CGContextSetBlendMode(ctx, kCGBlendModeCopy);
+    CGContextDrawImage(ctx, rect, image);
     CGContextRelease(ctx);
-    CGColorSpaceRelease(colourSpace);
+    CFRelease(image);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, (GLint)width);
+    GetError();
 
 We're now ready to get on with passing the data to OpenGL.
 
@@ -60,6 +46,8 @@ To give OpenGL texture data, we first need to create somewhere to store it on th
 
 We need to specify some filtering options - we tell OpenGL that we want biliniar filtering when the texture is sampled, and that we want to clamp the edge values if we try and sample off the edge of the texture:
 
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, (GLint)width);
+    GetError();
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     GetError();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -71,9 +59,9 @@ We need to specify some filtering options - we tell OpenGL that we want biliniar
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     GetError();
 
-Finally, we give OpenGL our image data:
+Finally, we give OpenGL our image data, note that we specify BGRA ordering, and that the components are going to be reversed in the data.  This matches the ARGB order that we used when creating our CGContext:
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (int)width, (int)height, 0, GL_RGBA , GL_UNSIGNED_BYTE, imgData);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, (int)width, (int)height, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, imgData);
     GetError();
 
 Once our two textures are uploaded to the graphics card, we want to set up texture units ready to access the textures.  Note that we do this so that we can access both textures at the same time in our shader.  glActiveTexture tells OpenGL that we want to use a different texture unit, while glBindTexture sets the texture as the current for that unit:

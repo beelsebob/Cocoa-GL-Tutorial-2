@@ -333,7 +333,6 @@ CVReturn displayCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *inNow,
     CGContextDrawImage(ctx, rect, image);
     CGContextRelease(ctx);
     CFRelease(image);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     
     GLuint glName;
     glGenTextures(1, &glName);
