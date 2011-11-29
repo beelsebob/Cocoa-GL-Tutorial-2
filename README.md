@@ -29,8 +29,6 @@ Finally, we draw into this context to fill our data buffer:
     CGContextDrawImage(ctx, rect, image);
     CGContextRelease(ctx);
     CFRelease(image);
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, (GLint)width);
-    GetError();
 
 We're now ready to get on with passing the data to OpenGL.
 
@@ -59,10 +57,11 @@ We need to specify some filtering options - we tell OpenGL that we want biliniar
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     GetError();
 
-Finally, we give OpenGL our image data, note that we specify BGRA ordering, and that the components are going to be reversed in the data.  This matches the ARGB order that we used when creating our CGContext:
+Finally, we give OpenGL our image data, note that we specify BGRA ordering, and that the components are going to be reversed in the data.  This matches the ARGB order that we used when creating our CGContext.  Note that we now free the image data, as OpenGL takes a copy of it:
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, (int)width, (int)height, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, imgData);
     GetError();
+    free(imageData);
 
 Once our two textures are uploaded to the graphics card, we want to set up texture units ready to access the textures.  Note that we do this so that we can access both textures at the same time in our shader.  glActiveTexture tells OpenGL that we want to use a different texture unit, while glBindTexture sets the texture as the current for that unit:
 
